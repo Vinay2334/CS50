@@ -4,7 +4,7 @@ import time
 
 from minesweeper import Minesweeper, MinesweeperAI
 
-N = 10
+N = 8
 
 HEIGHT = N
 WIDTH = N

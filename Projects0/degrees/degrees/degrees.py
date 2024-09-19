@@ -101,6 +101,7 @@ def shortest_path(source, target):
 
     while not person_queue.empty():
         cur_person = person_queue.remove()
+        print(cur_person)
         movies_by_person = list(people[cur_person].get("movies",  set()))
         for movieid in movies_by_person:
             person_stars_with = list(movies[movieid].get("stars", set()))
@@ -116,6 +117,30 @@ def shortest_path(source, target):
                 res.append((movieid, personid))
                 visited.add(personid)
                 person_queue.add(personid)
+    return None
+    # start = Node(state=source, parent=None, action=None)
+    # frontier = QueueFrontier()
+    # frontier.add(start)
+    # explored = set()
+
+    # while not frontier.empty():
+    #     node = frontier.remove()
+    #     if node.state == target:
+    #         # Build path
+    #         path = []
+    #         while node.parent is not None:
+    #             path.append((node.action, node.state))
+    #             node = node.parent
+    #         path.reverse()
+    #         return path
+
+    #     explored.add(node.state)
+
+    #     for movie_id, person_id in neighbors_for_person(node.state):
+    #         if not frontier.contains_state(person_id) and person_id not in explored:
+    #             child = Node(state=person_id, parent=node, action=movie_id)
+    #             frontier.add(child)
+
     return None
 
 

@@ -2,7 +2,7 @@ import itertools
 import random
 import copy
 
-N = 10
+N = 8
 
 
 class Minesweeper():
@@ -195,16 +195,13 @@ class MinesweeperAI():
                if they can be inferred from existing knowledge
         """
         self.moves_made.add(cell)
-        if cell not in self.safes:
-            self.mark_safe(cell)
+        self.mark_safe(cell)
 
         # Find Neighbours
         neighbors = set()
         for i in range(cell[0] - 1, cell[0] + 2):
             for j in range(cell[1] - 1, cell[1] + 2):
-                if (i, j) == cell:
-                    continue
-                if 0 <= i < self.height and 0 <= j < self.width:
+                if 0 <= i < self.height and 0 <= j < self.width and (i, j) != cell and (i, j) not in self.moves_made:
                     neighbors.add((i, j))
 
         new_sentance = Sentence(neighbors, count)
@@ -217,52 +214,34 @@ class MinesweeperAI():
             if known_safe_set is not None:
                 for cell in known_safe_set:
                     self.mark_safe(cell)
-            if known_mine_set is not None:
+            elif known_mine_set is not None:
                 for cell in known_mine_set:
                     self.mark_mine(cell)
 
-        new_inferences = list()
-        inference_to_remove = list()
-        # Inference based on subsets
-        for sentence1, sentence2 in itertools.combinations(self.knowledge, 2):
-            sentence1_cells = copy.deepcopy(sentence1.cells)
-            sentence2_cells = copy.deepcopy(sentence2.cells)
-            sentence1_count = sentence1.count
-            sentence2_count = sentence2.count
-            if len(sentence1_cells) > 0 and sentence1_cells.issubset(sentence2_cells):
-                difference_cells = sentence2_cells - sentence1_cells
-                difference_count = sentence2_count - sentence1_count
-                diff_sentance = Sentence(difference_cells, difference_count)
-                # print('subs1', str(sentence2), "Sen", str(
-                #     sentence1), "Diff", str(diff_sentance))
-                new_inferences.append(diff_sentance)
-                inference_to_remove.append(sentence2)
-
-            elif len(sentence2_cells) > 0 and sentence2_cells.issubset(sentence1_cells):
-                difference_cells = sentence1_cells - sentence2_cells
-                difference_count = sentence1_count - sentence2_count
-                diff_sentance = Sentence(difference_cells, difference_count)
-                # print('subs2', str(sentence1), "Sen", str(
-                #     sentence2), "Diff", str(diff_sentance))
-                # new_inferences.append(diff_sentance)
-                inference_to_remove.append(sentence1)
-
-        for inference in new_inferences:
-            if inference.count == 0:
-                for cell in inference.cells:
-                    self.mark_safe(cell)
-            else:
-                self.knowledge.append(inference)
-
-        for inference in inference_to_remove:
-            if inference in self.knowledge:
-                self.knowledge.remove(inference)
-
-        # Filter out empty sentences
+         # Filter out empty sentences
         self.knowledge[:] = [
             sentence for sentence in self.knowledge if len(sentence.cells) > 0]
 
-        print([str(sentence) for sentence in self.knowledge])
+        # Inference based on subsets
+        for sentence1, sentence2 in itertools.combinations(self.knowledge, 2):
+            if sentence1.cells in sentence2.cells:
+                difference_cells = sentence2.cells - sentence1.cells
+                difference_count = sentence2.count - sentence1.count
+                diff_sentance = Sentence(difference_cells, difference_count)
+                # print('subs1', str(sentence2), "Sen", str(
+                #     sentence1), "Diff", str(diff_sentance))
+                self.handle_inference(diff_sentance)
+
+            elif sentence2.cells in sentence1.cells:
+                difference_cells = sentence1.cells - sentence2.cells
+                difference_count = sentence1.count - sentence2.count
+                diff_sentance = Sentence(difference_cells, difference_count)
+                # print('subs2', str(sentence1), "Sen", str(
+                #     sentence2), "Diff", str(diff_sentance))
+                self.handle_inference(diff_sentance)
+
+
+        # print([str(sentence) for sentence in self.knowledge])
 
     def make_safe_move(self):
         """
@@ -274,7 +253,7 @@ class MinesweeperAI():
         and self.moves_made, but should not modify any of those values.
         """
         for cell in self.safes:
-            if cell not in self.mines and cell not in self.moves_made:
+            if cell not in self.moves_made:
                 return copy.deepcopy(cell)
         return None
 
@@ -287,8 +266,19 @@ class MinesweeperAI():
         """
         available_moves = [(i, j) for i in range(self.height) for j in range(self.width)
                            if (i, j) not in self.moves_made and (i, j) not in self.mines]
-        print('available_moves', available_moves)
         if available_moves:
             res = random.choice(available_moves)
             return res
         return None
+
+    def handle_inference(self, inference):
+        known_safe_set = inference.known_safes()
+        known_mine_set = inference.known_mines()
+        if known_safe_set is not None:
+            for cell in known_safe_set:
+                self.mark_safe(cell)
+        elif known_mine_set is not None:
+            for cell in known_mine_set:
+                self.mark_mine(cell)
+        else:
+            self.knowledge.append(inference)
