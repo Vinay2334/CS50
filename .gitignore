@@ -1,3 +1,4 @@
 *env
 *lenv
 *__pycache__
+*.vscode
